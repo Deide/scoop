@@ -149,8 +149,8 @@ $Queue | ForEach-Object {
         $replace = $json.checkver.replace
     }
 
-    # If the jsonpath is a single string, make it a hashtable with a `version` field.
-    if (![String]::IsNullOrEmpty($jsonpath) -and $jsonpath.GetType() -ne [System.Collections.Hashtable]) {
+    # If the jsonpath is a string that's not empty, make it a hashtable with a `version` field.
+    if ($jsonpath.GetType() -eq [System.String] -and ![String]::IsNullOrEmpty($jsonpath)) {
         $jsonpath = @{
             version = $jsonpath
         }
@@ -224,15 +224,16 @@ while ($in_progress -gt 0) {
         $parsed = ConvertTo-JsonToken($page)
         $matchesHashtable = @{}
 
-        $jsonpath.GetEnumerator() | ForEach-Object {
-            $matchesHashtable.Add($_.key, (Get-JsonPath $parsed $_.value))
+        # POpulate matchesHashtable with extracted variables
+        $jsonpath | ForEach-Object {
+            $matchesHashtable.Add($_, (Get-JsonPath $parsed $jsonpath[$_]))
         }
         $ver = $matchesHashtable.version
         if (!$ver) {
             $ver = json_path_legacy $page $jsonpath.version
         }
         if (!$ver) {
-            next "couldn't find '$jsonpath' in $url"
+            next "couldn't find '$($jsonpath.version)' in $url"
             continue
         }
     }

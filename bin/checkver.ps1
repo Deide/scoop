@@ -150,7 +150,7 @@ $Queue | ForEach-Object {
     }
 
     # If the jsonpath is a single string, make it a hashtable with a `version` field.
-    if ($jsonpath.GetType() -eq [System.String]) {
+    if (![String]::IsNullOrEmpty($jsonpath)) {
         $jsonpath = @{
             version = $jsonpath
         }
@@ -218,7 +218,7 @@ while ($in_progress -gt 0) {
 
     if ($jsonpath) {
         if (!$jsonpath.version) {
-            next "couldn't find 'version' field in $jsonpath; is there a misspelling?"
+            next "couldn't find 'version' field in jsonpath object; is there a misspelling?"
             continue
         }
         $parsed = ConvertTo-JsonToken($page)

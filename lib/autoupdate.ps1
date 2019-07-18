@@ -102,7 +102,7 @@ function find_hash_in_json([String] $url, [Hashtable] $substitutions, [String] $
         write-host -f darkred "URL $url is not valid"
         return
     }
-    $hash = json_path $json $jsonpath $substitutions
+    $hash = Get-JsonPath (ConvertTo-JsonToken $json) $jsonpath $substitutions
     if(!$hash) {
         $hash = json_path_legacy $json $jsonpath $substitutions
     }

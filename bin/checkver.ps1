@@ -150,7 +150,7 @@ $Queue | ForEach-Object {
     }
 
     # If the jsonpath is a single string, make it a hashtable with a `version` field.
-    if (![String]::IsNullOrEmpty($jsonpath)) {
+    if (![String]::IsNullOrEmpty($jsonpath) -and $jsonpath.GetType() -ne [Hashtable]) {
         $jsonpath = @{
             version = $jsonpath
         }

@@ -149,6 +149,13 @@ $Queue | ForEach-Object {
         $replace = $json.checkver.replace
     }
 
+    # If the jsonpath is a single string, make it a hashtable with a `version` field.
+    if ($jsonpath.GetType() -eq [System.String]) {
+        $jsonpath = @{
+            version = $jsonpath
+        }
+    }
+
     if (!$jsonpath -and !$regex -and !$xpath) {
         $regex = $json.checkver
     }
@@ -210,9 +217,19 @@ while ($in_progress -gt 0) {
     }
 
     if ($jsonpath) {
-        $ver = json_path $page $jsonpath
+        if (!$jsonpath.version) {
+            next "couldn't find 'version' field in $jsonpath; is there a misspelling?"
+            continue
+        }
+        $parsed = ConvertTo-JsonToken($page)
+        $matchesHashtable = @{}
+
+        $jsonpath.GetEnumerator() | ForEach-Object {
+            $matchesHashtable.Add($_.key, (Get-JsonPath $parsed $_.value))
+        }
+        $ver = $matchesHashtable.version
         if (!$ver) {
-            $ver = json_path_legacy $page $jsonpath
+            $ver = json_path_legacy $page $jsonpath.version
         }
         if (!$ver) {
             next "couldn't find '$jsonpath' in $url"

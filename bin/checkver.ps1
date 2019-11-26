@@ -205,6 +205,7 @@ while ($in_progress -gt 0) {
 
     $err = $ev.SourceEventArgs.Error
     $page = $ev.SourceEventArgs.Result
+    $matchesHashtable = @{}
 
     if ($err) {
         next "$($err.message)`r`nURL $url is not valid"
@@ -222,11 +223,11 @@ while ($in_progress -gt 0) {
             continue
         }
         $parsed = ConvertTo-JsonToken($page)
-        $matchesHashtable = @{}
 
-        # POpulate matchesHashtable with extracted variables
-        $jsonpath | ForEach-Object {
-            $matchesHashtable.Add($_, (Get-JsonPath $parsed $jsonpath[$_]))
+        # Populate matchesHashtable with extracted variables
+        ($jsonpath | Get-Member -MemberType NoteProperty).Definition | ForEach-Object {
+            $field = $_.Split("=").TrimStart("string ");
+            $matchesHashtable.Add($field[0], (Get-JsonPath $parsed $field[1]))
         }
         $ver = $matchesHashtable.version
         if (!$ver) {
@@ -274,7 +275,6 @@ while ($in_progress -gt 0) {
         }
 
         if ($match -and $match.Success) {
-            $matchesHashtable = @{}
             $regex.GetGroupNames() | ForEach-Object { $matchesHashtable.Add($_, $match.Groups[$_].Value) }
             $ver = $matchesHashtable['1']
             if ($replace) {

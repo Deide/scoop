@@ -86,10 +86,10 @@ Function Get-VirusTotalResult($hash, $app) {
     $wc = New-Object Net.Webclient
     $wc.Headers.Add('User-Agent', (Get-UserAgent))
     $result = $wc.downloadstring($url)
-    $stats = json_path $result '$.data.attributes.last_analysis_stats'
-    $malicious = json_path $stats '$.malicious'
-    $suspicious = json_path $stats '$.suspicious'
-    $undetected = json_path $stats '$.undetected'
+    $stats = Get-JsonPath (ConvertTo-JsonToken $result) '$.data.attributes.last_analysis_stats'
+    $malicious = $stats.Item('malicious')
+    $suspicious = $stats.Item('suspicious')
+    $undetected = $stats.Item('undetected')
     $unsafe = [int]$malicious + [int]$suspicious
     $see_url = "see https://www.virustotal.com/#/file/$hash/detection"
     switch ($unsafe) {

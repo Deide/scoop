@@ -149,6 +149,13 @@ $Queue | ForEach-Object {
         $replace = $json.checkver.replace
     }
 
+    # If the jsonpath is a string that's not empty, make it a hashtable with a `version` field.
+    if ($jsonpath.GetType() -eq [System.String] -and ![String]::IsNullOrEmpty($jsonpath)) {
+        $jsonpath = @{
+            version = $jsonpath
+        }
+    }
+
     if (!$jsonpath -and !$regex -and !$xpath) {
         $regex = $json.checkver
     }
@@ -198,6 +205,7 @@ while ($in_progress -gt 0) {
 
     $err = $ev.SourceEventArgs.Error
     $page = $ev.SourceEventArgs.Result
+    $matchesHashtable = @{}
 
     if ($err) {
         next "$($err.message)`r`nURL $url is not valid"
@@ -210,12 +218,23 @@ while ($in_progress -gt 0) {
     }
 
     if ($jsonpath) {
-        $ver = json_path $page $jsonpath
+        if (!$jsonpath.version) {
+            next "couldn't find 'version' field in jsonpath object; is there a misspelling?"
+            continue
+        }
+        $parsed = ConvertTo-JsonToken($page)
+
+        # Populate matchesHashtable with extracted variables
+        ($jsonpath | Get-Member -MemberType NoteProperty).Definition | ForEach-Object {
+            $field = $_.Split("=").TrimStart("string ");
+            $matchesHashtable.Add($field[0], (Get-JsonPath $parsed $field[1]))
+        }
+        $ver = $matchesHashtable.version
         if (!$ver) {
-            $ver = json_path_legacy $page $jsonpath
+            $ver = json_path_legacy $page $jsonpath.version
         }
         if (!$ver) {
-            next "couldn't find '$jsonpath' in $url"
+            next "couldn't find '$($jsonpath.version)' in $url"
             continue
         }
     }
@@ -256,7 +275,6 @@ while ($in_progress -gt 0) {
         }
 
         if ($match -and $match.Success) {
-            $matchesHashtable = @{}
             $regex.GetGroupNames() | ForEach-Object { $matchesHashtable.Add($_, $match.Groups[$_].Value) }
             $ver = $matchesHashtable['1']
             if ($replace) {

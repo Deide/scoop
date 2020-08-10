@@ -225,9 +225,8 @@ while ($in_progress -gt 0) {
         $parsed = ConvertTo-JsonToken($page)
 
         # Populate matchesHashtable with extracted variables
-        ($jsonpath | Get-Member -MemberType NoteProperty).Definition | ForEach-Object {
-            $field = $_.Split("=").TrimStart("string ");
-            $matchesHashtable.Add($field[0], (Get-JsonPath $parsed $field[1]))
+        foreach ($key in $jsonpath.psobject.properties.name) {
+            $matchesHashtable.Add($key, (Get-JsonPath $parsed $jsonpath.$key))
         }
         $ver = $matchesHashtable.version
         if (!$ver) {

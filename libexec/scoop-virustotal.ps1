@@ -69,7 +69,7 @@ $api_key = get_config VIRUSTOTAL_API_KEY
 if (!$api_key) {
     abort ("VirusTotal API key is not configured`n" +
         "  You could get one from https://www.virustotal.com/gui/my-apikey and set with`n" +
-        "  scoop config virustotal_api_key <API key>") $_ERR_NO_API_KEY
+        '  scoop config virustotal_api_key <API key>') $_ERR_NO_API_KEY
 }
 
 # Global flag to explain only once about sleep between requests
@@ -79,7 +79,7 @@ $explained_rate_limit_sleeping = $False
 # script execution progresses
 $requests = 0
 
-Function ConvertTo-VirusTotalUrlId ($url) {
+function ConvertTo-VirusTotalUrlId ($url) {
     $url_id = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($url))
     $url_id = $url_id -replace '\+', '-'
     $url_id = $url_id -replace '/', '_'
@@ -87,23 +87,23 @@ Function ConvertTo-VirusTotalUrlId ($url) {
     $url_id
 }
 
-Function Get-VirusTotalResultByHash ($hash, $url, $app) {
+function Get-VirusTotalResultByHash ($hash, $url, $app) {
     $hash = $hash.ToLower()
     $api_url = "https://www.virustotal.com/api/v3/files/$hash"
     $headers = @{}
     $headers.Add('Accept', 'application/json')
     $headers.Add('x-apikey', $api_key)
     $response = Invoke-WebRequest -Uri $api_url -Method GET -Headers $headers -UseBasicParsing
-    $result = $response.Content
-    $stats = json_path $result '$.data.attributes.last_analysis_stats'
-    [int]$malicious = json_path $stats '$.malicious'
-    [int]$suspicious = json_path $stats '$.suspicious'
-    [int]$timeout = json_path $stats '$.timeout'
-    [int]$undetected = json_path $stats '$.undetected'
+    $result = ConvertTo-JsonToken $response.Content
+    $stats = $result.data.attributes.last_analysis_stats
+    [int]$malicious = $stats.malicious.ToString()
+    [int]$suspicious = $stats.suspicious.ToString()
+    [int]$timeout = $stats.timeout.ToString()
+    [int]$undetected = $stats.undetected.ToString()
     [int]$unsafe = $malicious + $suspicious
     [int]$total = $unsafe + $undetected
-    [int]$fileSize = json_path $result '$.data.attributes.size'
-    $report_hash = json_path $result '$.data.attributes.sha256'
+    [int]$fileSize = $result.data.attributes.size.ToString()
+    $report_hash = $result.data.attributes.sha256.ToString()
     $report_url = "https://www.virustotal.com/gui/file/$report_hash"
     if ($total -eq 0) {
         info "$app`: Analysis in progress."
@@ -118,7 +118,7 @@ Function Get-VirusTotalResultByHash ($hash, $url, $app) {
             'UrlReport.Url'   = $null
         }
     } else {
-        $vendorResults = (ConvertFrom-Json((json_path $result '$.data.attributes.last_analysis_results'))).PSObject.Properties.Value
+        $vendorResults = $result.data.attributes.last_analysis_results
         switch ($unsafe) {
             0 {
                 success "$app`: $unsafe/$total, see $report_url"
@@ -129,16 +129,16 @@ Function Get-VirusTotalResultByHash ($hash, $url, $app) {
             2 {
                 warn "$app`: $unsafe/$total, see $report_url"
             }
-            Default {
+            default {
                 warn "$([char]0x1b)[31m$app`: $unsafe/$total, see $report_url$([char]0x1b)[0m"
             }
         }
         $maliciousResults = $vendorResults |
-            Where-Object -Property category -EQ 'malicious' |
-            Select-Object -ExpandProperty engine_name
+        Where-Object -Property category -EQ 'malicious' |
+        Select-Object -ExpandProperty engine_name
         $suspiciousResults = $vendorResults |
-            Where-Object -Property category -EQ 'suspicious' |
-            Select-Object -ExpandProperty engine_name
+        Where-Object -Property category -EQ 'suspicious' |
+        Select-Object -ExpandProperty engine_name
         [PSCustomObject] @{
             'App.Name'              = $app
             'App.Url'               = $url
@@ -159,7 +159,7 @@ Function Get-VirusTotalResultByHash ($hash, $url, $app) {
     }
 }
 
-Function Get-VirusTotalResultByUrl ($url, $app) {
+function Get-VirusTotalResultByUrl ($url, $app) {
     $id = ConvertTo-VirusTotalUrlId $url
     $api_url = "https://www.virustotal.com/api/v3/urls/$id"
     $headers = @{}
@@ -212,7 +212,7 @@ Function Get-VirusTotalResultByUrl ($url, $app) {
 #              submitting the file after a delay if the rate limit is
 #              exceeded, without risking an infinite loop (as stack
 #              overflow) if the submission keeps failing.
-Function Submit-ToVirusTotal ($url, $app, $do_scan, $retrying = $False) {
+function Submit-ToVirusTotal ($url, $app, $do_scan, $retrying = $False) {
     if (!$do_scan) {
         warn "$app`: not found`: you can manually submit $url"
         return

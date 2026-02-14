@@ -3,15 +3,17 @@
 # https://github.com/PowerShell/PowerShell/issues/2736 was fixed in pwsh
 # Still needed in normal powershell
 
+Add-Type -Path "$PSScriptRoot\..\supporting\validator\bin\Newtonsoft.Json.dll"
+
 function ConvertToPrettyJson {
     [CmdletBinding()]
 
-    Param (
+    param (
         [Parameter(Mandatory, ValueFromPipeline)]
         $data
     )
 
-    Process {
+    process {
         $data = normalize_values $data
 
         # convert to string
@@ -92,11 +94,7 @@ function ConvertToPrettyJson {
     }
 }
 
-function json_path([String] $json, [String] $jsonpath, [Hashtable] $substitutions, [Boolean] $reverse, [Boolean] $single) {
-    Add-Type -Path "$PSScriptRoot\..\supporting\validator\bin\Newtonsoft.Json.dll"
-    if ($null -ne $substitutions) {
-        $jsonpath = substitute $jsonpath $substitutions ($jsonpath -like "*=~*")
-    }
+function ConvertTo-JsonToken([String] $json) {
     try {
         $settings = New-Object -Type Newtonsoft.Json.JsonSerializerSettings
         $settings.DateParseHandling = [Newtonsoft.Json.DateParseHandling]::None
@@ -104,6 +102,16 @@ function json_path([String] $json, [String] $jsonpath, [Hashtable] $substitution
     } catch [Newtonsoft.Json.JsonReaderException] {
         return $null
     }
+
+    return $obj
+}
+
+function Get-JsonPath($obj, [String] $jsonpath, [Hashtable] $substitutions, [Boolean] $reverse, [Boolean] $single) {
+    # Add-Type -Path "$psscriptroot\..\supporting\validator\bin\Newtonsoft.Json.dll"
+    if ($null -ne $substitutions) {
+        $jsonpath = substitute $jsonpath $substitutions ($jsonpath -like '*=~*')
+    }
+
     try {
         $result = $obj.SelectTokens($jsonpath, $true)
         if ($reverse) {

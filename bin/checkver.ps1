@@ -53,12 +53,12 @@
 param(
     [String] $App = '*',
     [ValidateScript( {
-        if (!(Test-Path $_ -Type Container)) {
-            throw "$_ is not a directory!"
-        } else {
-            $true
-        }
-    })]
+            if (!(Test-Path $_ -Type Container)) {
+                throw "$_ is not a directory!"
+            } else {
+                $true
+            }
+        })]
     [String] $Dir,
     [Switch] $Update,
     [Switch] $ForceUpdate,
@@ -136,7 +136,7 @@ $Queue | ForEach-Object {
         $regex = ''
     }
 
-    $jsonpath = ''
+    $jsonpath = @{}
     $xpath = ''
     $replace = ''
     $useGithubAPI = $false
@@ -196,21 +196,35 @@ $Queue | ForEach-Object {
         $regex = "CDATA\[/$path/.*?$sourceforgeRegex.*?\]".Replace('//', '/')
     }
 
+    $jp_ = ''
+
     if ($json.checkver.jp) {
-        $jsonpath = $json.checkver.jp
+        $jp_ = $json.checkver.jp
     }
+
     if ($json.checkver.jsonpath) {
-        $jsonpath = $json.checkver.jsonpath
+        $jp_ = $json.checkver.jsonpath
     }
+
     if ($json.checkver.xpath) {
         $xpath = $json.checkver.xpath
     }
 
-    if ($json.checkver.replace -is [System.String]) { # If `checkver` is [System.String], it has a method called `Replace`
+    if ($json.checkver.replace -is [System.String]) {
+        # If `checkver` is [System.String], it has a method called `Replace`
         $replace = $json.checkver.replace
     }
 
-    if (!$jsonpath -and !$regex -and !$xpath) {
+    # If the jsonpath is a string that's not empty, make it a hashtable with a `version` field.
+    if (($jp_.GetType() -eq [System.String]) -and ![String]::IsNullOrEmpty($jp_)) {
+        $jsonpath.Add('version', $jp_)
+    } elseif (![String]::IsNullOrEmpty($jp_)) {
+        $json.checkver.jsonpath.psobject.properties | ForEach-Object {
+            $jsonpath.Add($_.Name, $_.Value)
+        }
+    }
+
+    if (!$jsonpath.Count -and !$regex -and !$xpath) {
         $regex = $json.checkver
     }
 
@@ -273,6 +287,7 @@ while ($in_progress -gt 0) {
     $replace = $state.replace
     $expected_ver = $json.version
     $ver = $Version
+    $matchesHashtable = @{}
 
     $matchesHashtable = @{}
 
@@ -310,24 +325,39 @@ while ($in_progress -gt 0) {
             $source = 'the output of script'
         }
 
-        if ($null -eq $page) {
-            next "couldn't retrieve content from $source"
-            continue
-        }
+        if ($jsonpath.Count) {
 
-        if ($jsonpath) {
+            if ($null -eq $page) {
+                next "couldn't retrieve content from $source"
+                continue
+            }
+
             # Return only a single value if regex is absent
             $noregex = [String]::IsNullOrEmpty($regexp)
             # If reverse is ON and regex is ON,
             # Then reverse would have no effect because regex handles reverse
             # on its own
             # So in this case we have to disable reverse
-            $ver = json_path $page $jsonpath $null ($reverse -and $noregex) $noregex
+            if (!$jsonpath.version) {
+                next "couldn't find 'version' field in jsonpath object; is there a misspelling?"
+                continue
+            }
+            if (([String]$page).StartsWith('{')) {
+                [Newtonsoft.Json.Linq.JObject]$parsed = ConvertTo-JsonToken($page)
+            } else {
+                [Newtonsoft.Json.Linq.JArray]$parsed = ConvertTo-JsonToken($page)
+            }
+
+            # Populate matchesHashtable with extracted variables
+            foreach ($key in $jsonpath.Keys) {
+                $matchesHashtable.Add($key, (Get-JsonPath $parsed $jsonpath.$key ($reverse -and $noregex)))
+            }
+            $ver = $matchesHashtable.version
             if (!$ver) {
-                $ver = json_path_legacy $page $jsonpath
+                $ver = json_path_legacy $page $jsonpath.version
             }
             if (!$ver) {
-                next "couldn't find '$jsonpath' in $source"
+                next "couldn't find '$jsonpath.version' in $source"
                 continue
             }
         }
@@ -335,7 +365,7 @@ while ($in_progress -gt 0) {
         if ($xpath) {
             $xml = [xml]$page
             # Find all `significant namespace declarations` from the XML file
-            $nsList = $xml.SelectNodes("//namespace::*[not(. = ../../namespace::*)]")
+            $nsList = $xml.SelectNodes('//namespace::*[not(. = ../../namespace::*)]')
             # Then add them into the NamespaceManager
             $nsmgr = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
             $nsList | ForEach-Object {
@@ -354,7 +384,7 @@ while ($in_progress -gt 0) {
             }
         }
 
-        if ($jsonpath -and $regexp) {
+        if ($jsonpath.Count -and $regexp) {
             $page = $ver
             $ver = ''
         }

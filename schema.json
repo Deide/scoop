@@ -280,6 +280,21 @@
                 }
             }
         },
+        "jsonpath": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "pattern": "^\\$[.[].*$"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string",
+                        "pattern": "^\\$[.[].*$"
+                    }
+                }
+            ]
+        },
         "checkver": {
             "anyOf": [
                 {
@@ -307,11 +322,11 @@
                             "type": "string"
                         },
                         "jp": {
-                            "$ref": "#/definitions/jsonPathPattern",
+                            "$ref": "#/definitions/jsonpath",
                             "description": "Same as 'jsonpath'"
                         },
                         "jsonpath": {
-                            "$ref": "#/definitions/jsonPathPattern"
+                            "$ref": "#/definitions/jsonpath"
                         },
                         "xpath": {
                             "type": "string"

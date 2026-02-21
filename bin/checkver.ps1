@@ -350,7 +350,7 @@ while ($in_progress -gt 0) {
 
             # Populate matchesHashtable with extracted variables
             foreach ($key in $jsonpath.Keys) {
-                $matchesHashtable.Add($key, (Get-JsonPath $parsed $jsonpath.$key ($reverse -and $noregex)))
+                $matchesHashtable.Add($key, (Get-JsonPath $parsed $jsonpath.$key -Reverse ($reverse -and $noregex)))
             }
             $ver = $matchesHashtable.version
             if (!$ver) {

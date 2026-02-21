@@ -106,7 +106,7 @@ function ConvertTo-JsonToken([String] $json) {
     return $obj
 }
 
-function Get-JsonPath($obj, [String] $jsonpath, [Hashtable] $substitutions, [Boolean] $reverse, [Boolean] $single) {
+function Get-JsonPath($obj, [String] $Jsonpath, [Hashtable] $Substitutions, [Boolean] $Reverse, [Boolean] $Single) {
     # Add-Type -Path "$psscriptroot\..\supporting\validator\bin\Newtonsoft.Json.dll"
     if ($null -ne $substitutions) {
         $jsonpath = substitute $jsonpath $substitutions ($jsonpath -like '*=~*')

@@ -346,15 +346,33 @@ while ($in_progress -gt 0) {
                 [Newtonsoft.Json.Linq.JArray]$parsed = ConvertTo-JsonToken($page)
             }
 
-            # Populate matchesHashtable with extracted variables
-            foreach ($key in $jsonpath.Keys) {
-                $success, $value = Get-JsonPath $parsed $jsonpath.$key -Reverse ($reverse -and $noregex)
-                if (!$success) {
-                    next $value
-                    continue
+            # Helper to populate matches and forward success/error
+            # Stops on the first error encountered
+            $populateHashtable = {
+                param($keys)
+
+                $subbedVariables = foreach ($key in $keys) {
+                    $success, $value = Get-JsonPath $parsed $jsonpath.$key -Reverse ($reverse -and $noregex)
+                    if (!$success) {
+                        return @{ Success = $false; Value = $value }
+                    }
+                    Write-Output @{Key = $key; Value = $value }
                 }
-                $matchesHashtable.Add($key, $value)
+                return @{ Success = $true; Value = $subbedVariables }
             }
+
+            $substitutionResult = & $populateHashTable $jsonpath.Keys
+
+            # If any of the jsonpaths failed, skip the app with the reason for failure
+            if (!$substitutionResult.Success) {
+                next $substitutionResult.Value
+                continue
+            }
+            # Populate matchesHashtable with extracted variables
+            foreach ($pair in $substitutionResult.Value) {
+                $matchesHashtable.Add($pair.Key, $pair.Value)
+            }
+
             $ver = $matchesHashtable.version
             if (!$ver) {
                 $ver = json_path_legacy $page $jsonpath.version

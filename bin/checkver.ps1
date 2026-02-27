@@ -289,8 +289,6 @@ while ($in_progress -gt 0) {
     $ver = $Version
     $matchesHashtable = @{}
 
-    $matchesHashtable = @{}
-
     if (!$ver) {
         if (!$regexp -and $replace) {
             next "'replace' requires 're' or 'regex'"
@@ -350,7 +348,12 @@ while ($in_progress -gt 0) {
 
             # Populate matchesHashtable with extracted variables
             foreach ($key in $jsonpath.Keys) {
-                $matchesHashtable.Add($key, (Get-JsonPath $parsed $jsonpath.$key -Reverse ($reverse -and $noregex)))
+                $success, $value = Get-JsonPath $parsed $jsonpath.$key -Reverse ($reverse -and $noregex)
+                if (!$success) {
+                    next $value
+                    continue
+                }
+                $matchesHashtable.Add($key, $value)
             }
             $ver = $matchesHashtable.version
             if (!$ver) {

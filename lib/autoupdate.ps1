@@ -1,4 +1,4 @@
-# Must included with 'json.ps1'
+# Must be included alongside 'json.ps1'
 
 function format_hash([String] $hash) {
     $hash = $hash.toLower()
@@ -138,7 +138,11 @@ function find_hash_in_json([String] $url, [Hashtable] $substitutions, [String] $
         return
     }
     debug $jsonpath
-    $hash = Get-JsonPath (ConvertTo-JsonToken $json) $jsonpath $substitutions
+    $success, $hash = Get-JsonPath (ConvertTo-JsonToken $json) $jsonpath $substitutions
+    if (!$success) {
+        Write-Host $hash
+        return
+    }
     if (!$hash) {
         $hash = json_path_legacy $json $jsonpath $substitutions
     }
@@ -385,7 +389,11 @@ function Update-ManifestProperty {
                 if ($Manifest.hash) {
                     # Global
                     $newURL = substitute $Manifest.autoupdate.url $Substitutions
-                    $newHash = HashHelper -AppName $AppName -Version $Version -HashExtraction $Manifest.autoupdate.hash -URL $newURL -Substitutions $Substitutions
+                    $newHash = if ($Manifest.autoupdate.hash.GetType() -eq 'String') {
+                        substitute $Manifest.autoupdate.hash $Substitutions
+                    } else {
+                        HashHelper -AppName $AppName -Version $Version -HashExtraction $Manifest.autoupdate.hash -URL $newURL -Substitutions $Substitutions
+                    }
                     $Manifest.hash, $hasPropertyChanged = PropertyHelper -Property $Manifest.hash -Value $newHash
                     $hasManifestChanged = $hasManifestChanged -or $hasPropertyChanged
                 } else {

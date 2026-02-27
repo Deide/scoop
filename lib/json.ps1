@@ -108,8 +108,8 @@ function ConvertTo-JsonToken([String] $json) {
 
 function Get-JsonPath($obj, [String] $Jsonpath, [Hashtable] $Substitutions, [Boolean] $Reverse, [Boolean] $Single) {
     # Add-Type -Path "$psscriptroot\..\supporting\validator\bin\Newtonsoft.Json.dll"
-    if ($null -ne $substitutions) {
-        $jsonpath = substitute $jsonpath $substitutions ($jsonpath -like '*=~*')
+    if ($null -ne $Substitutions) {
+        $jsonpath = substitute $Jsonpath $Substitutions ($Jsonpath -like '*=~*')
     }
 
     try {
@@ -126,12 +126,11 @@ function Get-JsonPath($obj, [String] $Jsonpath, [Hashtable] $Substitutions, [Boo
         } else {
             $result = [Newtonsoft.Json.JsonConvert]::SerializeObject($result)
         }
-        return $result
+        return $true, $result
     } catch [Exception] {
-        Write-Host $_ -ForegroundColor DarkRed
+        # Write-Host $_ -ForegroundColor DarkRed
+        return $false, "There was an issue parsing the jsonpath: $_"
     }
-
-    return $null
 }
 
 function json_path_legacy([String] $json, [String] $jsonpath, [Hashtable] $substitutions) {

@@ -63,7 +63,7 @@ $show_update_log = get_config SHOW_UPDATE_LOG $true
 
 function Sync-Scoop {
     [CmdletBinding()]
-    Param (
+    param (
         [Switch]$Log
     )
     # Test if Scoop Core is hold
@@ -76,9 +76,9 @@ function Sync-Scoop {
 
     Write-Host 'Updating Scoop...'
     $currentdir = versiondir 'scoop' 'current'
+    $olddir = "$currentdir\..\old"
     if (!(Test-Path "$currentdir\.git")) {
         $newdir = "$currentdir\..\new"
-        $olddir = "$currentdir\..\old"
 
         # get git scoop
         Invoke-Git -ArgumentList @('clone', '-q', $configRepo, '--branch', $configBranch, '--single-branch', $newdir)
@@ -98,8 +98,8 @@ function Sync-Scoop {
             }
         }
     } else {
-        if (Test-Path "$currentdir\..\old") {
-            Remove-Item "$currentdir\..\old" -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $olddir) {
+            Remove-Item $olddir -Recurse -Force -ErrorAction SilentlyContinue
         }
 
         $previousCommit = Invoke-Git -Path $currentdir -ArgumentList @('rev-parse', 'HEAD')
@@ -153,7 +153,7 @@ function Sync-Scoop {
 }
 
 function Sync-Bucket {
-    Param (
+    param (
         [Switch]$Log
     )
     Write-Host 'Updating Buckets...'
@@ -357,7 +357,7 @@ function update($app, $global, $quiet = $false, $independent, $suggested, $use_c
             Move-Item "$dir" "$dir/../_$version.old"
         } else {
             $i = 1
-            While (Test-Path "$dir/../_$version.old($i)") {
+            while (Test-Path "$dir/../_$version.old($i)") {
                 $i++
             }
             Move-Item "$dir" "$dir/../_$version.old($i)"

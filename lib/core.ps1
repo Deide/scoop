@@ -257,6 +257,22 @@ function Invoke-Git {
     return & $git @ArgumentList
 }
 
+function max($n, $m) {
+    if ($n -gt $m) {
+        return $n
+    } else {
+        return $m
+    }
+}
+
+function min($n, $m) {
+    if ($n -gt $m) {
+        return $m
+    } else {
+        return $n
+    }
+}
+
 function Invoke-GitLog {
     [CmdletBinding()]
     param (
@@ -273,7 +289,12 @@ function Invoke-GitLog {
             }
             $Name = "%Cgreen$($Name.PadRight(12, ' ').Substring(0, 12))%Creset "
         }
-        Invoke-Git -Path $Path -ArgumentList @('--no-pager', 'log', '--color', '--no-decorate', '--grep=^(chore)', '--invert-grep', '--abbrev=12', "--format=tformat: * %C(yellow)%h%Creset %<|(72,trunc)%s $Name%C(cyan)%cr%Creset", "$CommitHash..HEAD")
+        $format = if ($host.UI.RawUI.WindowSize.Width -gt 60) {
+            "--format=tformat: * %C(yellow)%h%Creset %<|($(min ($host.UI.RawUI.WindowSize.Width - 30) 120),trunc)%s $Name%C(cyan)%cr%Creset"
+        } else {
+            "--format=tformat: * %C(yellow)%h%Creset  $Name%C(cyan)%cr%Creset`n %<|($($host.UI.RawUI.WindowSize.Width - 1),trunc)   %s"
+        }
+        Invoke-Git -Path $Path -ArgumentList @('--no-pager', 'log', '--color', '--no-decorate', '--grep=^(chore)', '--invert-grep', '--abbrev=12', $format, "$CommitHash..HEAD")
     }
 }
 

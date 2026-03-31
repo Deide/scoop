@@ -389,7 +389,7 @@ function Update-ManifestProperty {
                 if ($Manifest.hash -and $Manifest.autoupdate) {
                     # Global
                     $newURL = substitute $Manifest.autoupdate.url $Substitutions
-                    $newHash = if (${Manifest.autoupdate.hash}?.GetType() -eq 'String') {
+                    $newHash = if ($Manifest.autoupdate.hash?.GetType().Name -eq 'String') {
                         substitute $Manifest.autoupdate.hash $Substitutions
                     } else {
                         HashHelper -AppName $AppName -Version $Version -HashExtraction $Manifest.autoupdate.hash -URL $newURL -Substitutions $Substitutions

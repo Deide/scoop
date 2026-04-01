@@ -186,6 +186,7 @@ function Sync-Bucket {
     $removedFiles = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new())
     if ($PSVersionTable.PSVersion.Major -ge 7) {
         # Parallel parameter is available since PowerShell 7
+        $console = $host.UI.RawUI
         $buckets | Where-Object { $_.valid } | ForEach-Object -ThrottleLimit 5 -Parallel {
             . "$using:PSScriptRoot\..\lib\core.ps1"
             . "$using:PSScriptRoot\..\lib\buckets.ps1"
@@ -197,7 +198,7 @@ function Sync-Bucket {
             $previousCommit = Invoke-Git -Path $bucketLoc -ArgumentList @('rev-parse', 'HEAD')
             Invoke-Git -Path $bucketLoc -ArgumentList @('pull', '-q')
             if ($using:Log) {
-                Invoke-GitLog -Path $bucketLoc -Name $name -CommitHash $previousCommit
+                Invoke-GitLog -Console $using:console -Path $bucketLoc -Name $name -CommitHash $previousCommit
             }
             if (get_config USE_SQLITE_CACHE) {
                 Invoke-Git -Path $bucketLoc -ArgumentList @('diff', '--name-status', $previousCommit) | ForEach-Object {
@@ -228,7 +229,7 @@ function Sync-Bucket {
             $previousCommit = Invoke-Git -Path $bucketLoc -ArgumentList @('rev-parse', 'HEAD')
             Invoke-Git -Path $bucketLoc -ArgumentList @('pull', '-q')
             if ($Log) {
-                Invoke-GitLog -Path $bucketLoc -Name $name -CommitHash $previousCommit
+                Invoke-GitLog -Console $using:console -Path $bucketLoc -Name $name -CommitHash $previousCommit
             }
             if (get_config USE_SQLITE_CACHE) {
                 Invoke-Git -Path $bucketLoc -ArgumentList @('diff', '--name-status', $previousCommit) | ForEach-Object {

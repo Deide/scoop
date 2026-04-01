@@ -280,7 +280,8 @@ function Invoke-GitLog {
         [String]$Path,
         [Parameter(Mandatory, ValueFromPipeline)]
         [String]$CommitHash,
-        [String]$Name = ''
+        [String]$Name = '',
+        $Console = $host.UI.RawUI
     )
     process {
         if ($Name) {
@@ -289,7 +290,7 @@ function Invoke-GitLog {
             }
             $Name = "%Cgreen$($Name.PadRight(12, ' ').Substring(0, 12))%Creset "
         }
-        $width = $host.UI.RawUI.WindowSize.Width
+        $width = $Console.WindowSize.Width
         $format = if ($width -gt 60) {
             "--format=tformat: * %C(yellow)%h%Creset %<|($(min ($width - 30) 120),trunc)%s $Name%C(cyan)%cr%Creset"
         } else {

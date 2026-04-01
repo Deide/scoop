@@ -289,10 +289,11 @@ function Invoke-GitLog {
             }
             $Name = "%Cgreen$($Name.PadRight(12, ' ').Substring(0, 12))%Creset "
         }
-        $format = if ($host.UI.RawUI.WindowSize.Width -gt 60) {
-            "--format=tformat: * %C(yellow)%h%Creset %<|($(min ($host.UI.RawUI.WindowSize.Width - 30) 120),trunc)%s $Name%C(cyan)%cr%Creset"
+        $width = $host.UI.RawUI.WindowSize.Width
+        $format = if ($width -gt 60) {
+            "--format=tformat: * %C(yellow)%h%Creset %<|($(min ($width - 30) 120),trunc)%s $Name%C(cyan)%cr%Creset"
         } else {
-            "--format=tformat: * %C(yellow)%h%Creset  $Name%>|($($host.UI.RawUI.WindowSize.Width),trunc)%C(cyan)%cr%Creset%n%w($($host.UI.RawUI.WindowSize.Width - 17),3,5)%s%n"
+            "--format=tformat: * %C(yellow)%h%Creset  $Name%>|($width,trunc)%C(cyan)%cr%Creset%n%w($width - 17,3,5)%s%n"
         }
         Invoke-Git -Path $Path -ArgumentList @('--no-pager', 'log', '--color', '--no-decorate', '--grep=^(chore)', '--invert-grep', '--abbrev=12', $format, "$CommitHash..HEAD")
     }

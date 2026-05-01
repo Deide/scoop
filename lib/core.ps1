@@ -16,8 +16,8 @@ function Get-PESubsystem($filePath) {
     } catch {
         return -1
     } finally {
-        $binaryReader.Close()
-        $fileStream.Close()
+        if ($null -ne $binaryReader) { $binaryReader.Close() }
+        if ($null -ne $fileStream) { $fileStream.Close() }
     }
 }
 
@@ -503,9 +503,9 @@ function Get-HelperPath {
                 }
             }
             'Dark' {
-                $HelperPath = Get-AppFilePath 'wixtoolset' 'wix.exe'
+                $HelperPath = Get-AppFilePath 'dark' 'dark.exe'
                 if ([String]::IsNullOrEmpty($HelperPath)) {
-                    $HelperPath = Get-AppFilePath 'dark' 'dark.exe'
+                    $HelperPath = Get-AppFilePath 'wixtoolset' 'wix.exe'
                 }
             }
             'Aria2' { $HelperPath = Get-AppFilePath 'aria2' 'aria2c.exe' }
@@ -1150,7 +1150,7 @@ function Confirm-InstallationStatus {
 }
 
 function wraptext($text, $width) {
-    if (!$width) { $width = $host.ui.rawui.buffersize.width };
+    if (!$width) { $width = $host.ui.rawui.buffersize.width }
     $width -= 1 # be conservative: doesn't seem to print the last char
 
     $text -split '\r?\n' | ForEach-Object {
